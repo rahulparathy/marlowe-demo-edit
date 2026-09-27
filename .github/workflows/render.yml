@@ -1,0 +1,49 @@
+name: render
+on:
+  workflow_dispatch:
+    inputs:
+      comps:
+        description: 'JSON array of composition names (tarballs under render/ on the render branch)'
+        required: true
+        default: '["v_main","v_client","v_owner"]'
+      tag:
+        description: Release tag for the rendered videos
+        default: renders
+permissions:
+  contents: write
+jobs:
+  render:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    strategy:
+      fail-fast: false
+      matrix:
+        comp: ${{ fromJSON(inputs.comps) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: render
+          sparse-checkout: render/${{ matrix.comp }}.tar
+          sparse-checkout-cone-mode: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Tools
+        run: |
+          sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg fonts-dejavu-core >/dev/null
+          ffmpeg -version | head -1; nproc
+      - name: Render
+        run: |
+          set -euo pipefail
+          mkdir -p work && tar -xf "render/${{ matrix.comp }}.tar" -C work
+          cd "work/${{ matrix.comp }}"
+          npx --yes hyperframes@0.8.80 render --output "$GITHUB_WORKSPACE/${{ matrix.comp }}_raw.mp4" 2>&1 | grep -v "Streaming frame" || true
+          ls -la "$GITHUB_WORKSPACE/${{ matrix.comp }}_raw.mp4"
+      - name: Upload
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+          REPO: ${{ github.repository }}
+        run: |
+          gh release view "$TAG" -R "$REPO" >/dev/null 2>&1 || gh release create "$TAG" -R "$REPO" --title "$TAG" --notes "Rendered demo videos" || true
+          gh release upload "$TAG" "${{ matrix.comp }}_raw.mp4" -R "$REPO" --clobber
