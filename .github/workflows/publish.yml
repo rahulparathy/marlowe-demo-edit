@@ -1,0 +1,28 @@
+name: publish
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Release tag for the final videos
+        default: final
+permissions:
+  contents: write
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: final-videos
+          sparse-checkout: final
+          sparse-checkout-cone-mode: false
+      - name: Attach videos to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ inputs.tag }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          ls -la final
+          gh release view "$TAG" -R "$REPO" >/dev/null 2>&1 || gh release create "$TAG" -R "$REPO" --title "Marlowe & Ash demo videos" --notes "Final mastered demo videos: 1080p30, H.264/AAC, -14 LUFS."
+          for f in final/*.mp4; do gh release upload "$TAG" "$f" -R "$REPO" --clobber; done
