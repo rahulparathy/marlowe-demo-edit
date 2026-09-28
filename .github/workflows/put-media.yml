@@ -5,14 +5,8 @@ on:
       tag:
         description: Release tag holding the files
         default: social
-      base:
-        description: Upload bucket base URL (ending in the user folder, no trailing slash)
-        required: true
-      query:
-        description: Query string shared by every presigned URL, without X-Amz-Signature
-        required: true
       items:
-        description: 'JSON array of {"file": "...", "key": "<uuid>.<ext>", "type": "image/jpeg", "sig": "..."}'
+        description: 'JSON array of {"file": "...", "url": "<presigned PUT url>", "type": "image/jpeg"}'
         required: true
 permissions:
   contents: read
@@ -25,17 +19,14 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           REPO: ${{ github.repository }}
           TAG: ${{ inputs.tag }}
-          BASE: ${{ inputs.base }}
-          QUERY: ${{ inputs.query }}
           ITEMS: ${{ inputs.items }}
         run: |
           set -euo pipefail
           mkdir -p dl && cd dl
           echo "$ITEMS" | jq -c '.[]' | while read -r it; do
-            f=$(echo "$it" | jq -r .file); key=$(echo "$it" | jq -r .key)
-            ct=$(echo "$it" | jq -r .type); sig=$(echo "$it" | jq -r .sig)
+            f=$(echo "$it" | jq -r .file); url=$(echo "$it" | jq -r .url); ct=$(echo "$it" | jq -r .type)
             gh release download "$TAG" -R "$REPO" -p "$f" --clobber
-            code=$(curl -sS -o /dev/null -w "%{http_code}" -X PUT -H "Content-Type: $ct" --data-binary @"$f" "$BASE/$key?$QUERY&X-Amz-Signature=$sig")
-            echo "$f -> $key : HTTP $code"
+            code=$(curl -sS -o /dev/null -w "%{http_code}" -X PUT -H "Content-Type: $ct" --data-binary @"$f" "$url")
+            echo "$f : HTTP $code"
             [ "$code" = "200" ]
           done
