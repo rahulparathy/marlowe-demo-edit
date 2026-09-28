@@ -46,6 +46,8 @@
     "O08": "When a client spends part of a gift card at the studio, Mara applies the amount, and the ledger keeps the balance.",
     "O09": "Her stats show bookings taken online, reminders sent, refunds and waitlist offers, plus an estimate of the hours all of that saved her.",
     "O10": "She can update her prices any time, while the core booking rules stay locked, so nothing breaks by accident.",
-    "O11": "If a pay-at-salon client never confirms, their slot is released and offered to the waitlist."
+    "O11": "If a pay-at-salon client never confirms, their slot is released and offered to the waitlist.",
+    "A01": "Behind the scenes, her automations run on their own. Confirmations, reminders, a rebooking nudge after five weeks, aftercare tips the next day, and every email is logged.",
+    "S09s": "They pick a service, then a time. Every slot shows in Eastern time."
   }
 }
