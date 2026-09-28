@@ -23,6 +23,13 @@ jobs:
           REPO: ${{ github.repository }}
         run: |
           set -euo pipefail
+          # files over GitHub's 100 MB limit are stored as .part-NN chunks; join them back
+          for first in final/*.mp4.part-00; do
+            [ -e "$first" ] || continue
+            base="${first%.part-00}"
+            cat "$base".part-* > "$base"
+            rm "$base".part-*
+          done
           ls -la final
           gh release view "$TAG" -R "$REPO" >/dev/null 2>&1 || gh release create "$TAG" -R "$REPO" --title "Marlowe & Ash demo videos" --notes "Final mastered demo videos: 1080p30, H.264/AAC, -14 LUFS."
           for f in final/*.mp4; do gh release upload "$TAG" "$f" -R "$REPO" --clobber; done
